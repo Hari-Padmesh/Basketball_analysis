@@ -43,6 +43,6 @@ class playerTracker:
                 cls_id=frame_detection[3]
                 track_id=frame_detection[4]
                 if cls_id==cls_names_inv["Player"]:
-                    tracks[frame_num][track_id]={"box":bbox}
+                    tracks[frame_num][track_id]={"bbox":bbox}
         save_stub(stub_path,tracks) 
         return tracks   
