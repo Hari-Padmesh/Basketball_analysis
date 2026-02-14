@@ -1,6 +1,7 @@
 from utils import read_video, save_video    
 from trackers import playerTracker,BallTracker
 from drawers import(PlayerTracksDrawer, BallTracksDrawer)
+from team_assigner import TeamAssigner
 
 def main():
     video_frame=read_video("input_videos/video_1.mp4")
@@ -20,6 +21,14 @@ def main():
     #remove wrong ball detections
     ball_tracks=ball_tracker.remove_wrong_detections(ball_tracks)   
 
+    #Interpolate ball positions
+    ball_tracks=ball_tracker.interpolate_ball_positions(ball_tracks)
+    #Assign teams to players
+    team_assigner= TeamAssigner()
+    player_assignment= team_assigner.get_player_teams_across_frames(video_frame,
+                                                                player_tracks,
+                                                                read_from_stubs=True,
+                                                                stub_path="stubs/player_team_assignment_stubs.pkl")
     
     #Draw output
     #initailise drawers
@@ -27,7 +36,7 @@ def main():
     ball_tracks_drawer=BallTracksDrawer()
 
     #Draw Object Tracks
-    output_video_frames=player_tracks_drawer.draw(video_frame, player_tracks)   
+    output_video_frames=player_tracks_drawer.draw(video_frame, player_tracks,player_assignment)   
     output_video_frames=ball_tracks_drawer.draw(output_video_frames, ball_tracks)   
 
     save_video(output_video_frames,"output_videos/output_video.avi")   
