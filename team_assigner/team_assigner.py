@@ -10,6 +10,8 @@ class TeamAssigner:
         self.team_1_class_name = team_1_class_name
         self.team_2_class_name = team_2_class_name
         self.player_team_dict = {}
+        self.y_true = []
+        self.y_pred = []
     def load_model(self):
         self.model = CLIPModel.from_pretrained("patrickjohncyh/fashion-clip")
         self.processor = CLIPProcessor.from_pretrained("patrickjohncyh/fashion-clip")
@@ -36,6 +38,11 @@ class TeamAssigner:
             team_id=1
     
         self.player_team_dict[player_id] = team_id
+        if true_team is not None:
+            self.y_true.append(true_team)
+            self.y_pred.append(team_id)
+        
+
         return team_id
     
     def get_player_teams_across_frames(self,videos_frames, player_tracks,read_from_stubs=False,stub_path=None):
@@ -52,6 +59,11 @@ class TeamAssigner:
                 self.player_team_dict = {}
 
             for player_id, track in player_track.items():
+                true_team = track.get("true_team", None)   # must exist in your data
+                team = self.get_player_team(
+                    videos_frames[frame_num],
+                    track["bbox"], player_id,
+                    true_team)
                 team = self.get_player_team(videos_frames[frame_num], track["bbox"], player_id)
                 player_assignment[frame_num][player_id] = team
        
