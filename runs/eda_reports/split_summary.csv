@@ -1,0 +1,7 @@
+model,split,images,label_files,labeled_images,boxes,avg_boxes_per_labeled_image,missing_label_for_image,labels_without_images,invalid_rows,invalid_bbox_rows
+ball_detector_model.pt,train,256,256,256,3686,14.3984375,0,0,0,0
+ball_detector_model.pt,val,32,32,32,483,15.09375,0,0,0,0
+ball_detector_model.pt,test,32,32,32,471,14.71875,0,0,0,0
+player_detector.pt,train,256,256,256,3686,14.3984375,0,0,0,0
+player_detector.pt,val,32,32,32,483,15.09375,0,0,0,0
+player_detector.pt,test,32,32,32,471,14.71875,0,0,0,0

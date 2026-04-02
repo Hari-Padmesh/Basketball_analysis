@@ -1,0 +1,13 @@
+path: d:\Basketball_analysis\training_notebooks\Basketball-Players-17
+train: D:\Basketball_analysis\training_notebooks\Basketball-Players-17\train\images
+val: D:\Basketball_analysis\training_notebooks\Basketball-Players-17\valid\images
+test: D:\Basketball_analysis\training_notebooks\Basketball-Players-17\test\images
+names:
+  0: Ball
+  1: Clock
+  2: Hoop
+  3: Overlay
+  4: Player
+  5: Ref
+  6: Scoreboard
+nc: 7

@@ -57,4 +57,4 @@ class TeamAssigner:
        
         save_stub(stub_path,player_assignment)
         return player_assignment
-    
+     

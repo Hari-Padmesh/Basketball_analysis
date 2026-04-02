@@ -37,7 +37,7 @@ wheels/
 
 # Output folders
 output_videos/
-runs/
+
 
 # IDE specific files
 .vscode/

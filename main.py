@@ -1,7 +1,8 @@
 from utils import read_video, save_video    
 from trackers import playerTracker,BallTracker
-from drawers import(PlayerTracksDrawer, BallTracksDrawer)
+from drawers import(PlayerTracksDrawer, BallTracksDrawer, TeamBallControlDrawer)
 from team_assigner import TeamAssigner
+from ball_acquisition import BallAcquisitionDetector
 
 def main():
     video_frame=read_video("input_videos/video_1.mp4")
@@ -29,19 +30,26 @@ def main():
                                                                 player_tracks,
                                                                 read_from_stubs=True,
                                                                 stub_path="stubs/player_team_assignment_stubs.pkl")
-    
+    #Detect ball acquisition
+    ball_acquisition_detector= BallAcquisitionDetector()
+    ball_acquisition= ball_acquisition_detector.detect_ball_possession(player_tracks, ball_tracks)
+    print(ball_acquisition)
+
     #Draw output
     #initailise drawers
     player_tracks_drawer=PlayerTracksDrawer()
     ball_tracks_drawer=BallTracksDrawer()
+    team_ball_control_drawer=TeamBallControlDrawer()
+
 
     #Draw Object Tracks
-    output_video_frames=player_tracks_drawer.draw(video_frame, player_tracks,player_assignment)   
+    output_video_frames=player_tracks_drawer.draw(video_frame, player_tracks,player_assignment, ball_acquisition)   
     output_video_frames=ball_tracks_drawer.draw(output_video_frames, ball_tracks)   
 
-    save_video(output_video_frames,"output_videos/output_video.avi")   
+    #Draw Team Ball Control
+    output_video_frames=team_ball_control_drawer.draw(output_video_frames,player_assignment,ball_acquisition)
 
-    
+    save_video(output_video_frames,"output_videos/output_video.avi")   
 
 if __name__ == "__main__":
     main()
