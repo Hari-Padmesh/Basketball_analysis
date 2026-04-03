@@ -2,6 +2,7 @@ from utils import read_video, save_video
 from trackers import playerTracker,BallTracker
 from drawers import(PlayerTracksDrawer, BallTracksDrawer, TeamBallControlDrawer, PassInterceptionDrawer, CourtKeypointDrawer)
 from team_assigner import TeamAssigner
+from court_keypoint_detecter import CourtKeypointDetector
 from ball_acquisition import BallAcquisitionDetector
 from pass_and_interception_detector import PassAndInterceptionDetector
 from court_key_point_detector import CourtKeypointDetector
@@ -74,7 +75,9 @@ def main():
     #Draw Court Keypoints
     output_video_frames = court_keypoint_drawer.draw(output_video_frames, court_key_points)
 
-    save_video(output_video_frames,"output_videos/output_video.avi")   
+    # Save video
+    save_video(output_video_frames, args.output_video)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
+    

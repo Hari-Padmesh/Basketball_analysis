@@ -10,6 +10,20 @@ class PassInterceptionDrawer:
         pass
 
     def get_stats(self, passes, interceptions):
+        """
+        Calculate the number of passes and interceptions for Team 1 and Team 2.
+
+        Args:
+            passes (list): A list of integers representing pass events at each frame.
+                (1 represents a pass by Team 1, 2 represents a pass by Team 2, 0 represents no pass.)
+            interceptions (list): A list of integers representing interception events at each frame.
+                (1 represents an interception by Team 1, 2 represents an interception by Team 2, 0 represents no interception.)
+
+        Returns:
+            tuple: A tuple of four integers (team1_pass_total, team2_pass_total,
+                team1_interception_total, team2_interception_total) indicating the total
+                number of passes and interceptions for both teams.
+        """
         team1_passes = []
         team2_passes = []
         team1_interceptions = []
@@ -29,6 +43,19 @@ class PassInterceptionDrawer:
         return len(team1_passes), len(team2_passes), len(team1_interceptions), len(team2_interceptions)
 
     def draw(self, video_frames, passes, interceptions):
+        """
+        Draw pass and interception statistics on a list of video frames.
+
+        Args:
+            video_frames (list): A list of frames (as NumPy arrays or image objects) on which to draw.
+            passes (list): A list of integers representing pass events at each frame.
+                (1 represents a pass by Team 1, 2 represents a pass by Team 2, 0 represents no pass.)
+            interceptions (list): A list of integers representing interception events at each frame.
+                (1 represents an interception by Team 1, 2 represents an interception by Team 2, 0 represents no interception.)
+
+        Returns:
+            list: A list of frames with pass and interception statistics drawn on them.
+        """
         output_video_frames = []
         for frame_num, frame in enumerate(video_frames):
             if frame_num == 0:
@@ -39,6 +66,7 @@ class PassInterceptionDrawer:
         return output_video_frames
     
     def draw_frame(self, frame, frame_num, passes, interceptions):
+        
         # Draw a semi-transparent rectangle
         overlay = frame.copy()
         font_scale = 0.7
@@ -68,9 +96,25 @@ class PassInterceptionDrawer:
             interceptions_till_frame
         )
 
-        cv2.putText(frame, f"Team 1 - Passes: {team1_passes} Interceptions: {team1_interceptions}",(text_x, text_y1), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0,0,0), font_thickness)
+        cv2.putText(
+            frame, 
+            f"Team 1 - Passes: {team1_passes} Interceptions: {team1_interceptions}",
+            (text_x, text_y1), 
+            cv2.FONT_HERSHEY_SIMPLEX, 
+            font_scale, 
+            (0,0,0), 
+            font_thickness
+        )
         
-        cv2.putText(frame, f"Team 2 - Passes: {team2_passes} Interceptions: {team2_interceptions}",(text_x, text_y2), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0,0,0), font_thickness)
+        cv2.putText(
+            frame, 
+            f"Team 2 - Passes: {team2_passes} Interceptions: {team2_interceptions}",
+            (text_x, text_y2), 
+            cv2.FONT_HERSHEY_SIMPLEX, 
+            font_scale, 
+            (0,0,0), 
+            font_thickness
+        )
 
 
         return frame
