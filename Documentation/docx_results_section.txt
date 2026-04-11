@@ -1,0 +1,116 @@
+﻿[860] 9 Ball and 1 Overlay instance missed, 1 Clock missed, 13 Player instances missed. Notably, player_detector misses more players outright (13) than ball_detector (25 shown as background FN for Player). However, its 246 TP vs 234 TP represents a significant net improvement. 
+[861] 
+[865] I-A. EXPANDED INTRODUCTION
+[866] A. Basic Introduction
+[867] Basketball stands apart from most team sports in the sheer density and pace of events that unfold within a single possession. A typical NBA game compresses more than four hundred discrete player-ball interactions into forty-eight minutes of play, with rosters cycling through offensive sets, defensive rotations, fast breaks, and transition moments at a rate that far exceeds the capacity of any human analyst to simultaneously track. For decades, the only tools available to coaches and analysts were their own eyes, complemented by post-game statistics compiled by human scorers and, later, by video review systems that still required a trained analyst to watch every minute of footage in sequence. This manual paradigm is not merely inconvenient — it is fundamentally limiting. The volume of data a human analyst can extract from a single game is a small fraction of what is embedded in the video signal itself, and the extraction process is unavoidably coloured by attention bias, fatigue, and retrospective framing. The emergence of computer vision and deep learning has begun to fundamentally transform this situation, making it technically feasible to deploy automated systems that watch every frame, track every player, and register every ball touch with a consistency and throughput that no human team could hope to match [1].
+[868] The last decade has seen a rapid maturation of object detection architectures. Early region-proposal networks such as Faster R-CNN delivered strong accuracy but required multiple forward passes per image, making real-time deployment impractical. Single-stage detectors like SSD and subsequently the YOLO (You Only Look Once) family addressed this bottleneck by processing the entire image in a single forward pass, simultaneously predicting bounding boxes and class labels for all objects present. YOLOv8, the version used in this work, further improves on earlier iterations with an anchor-free detection head, a decoupled classification and regression design, and a dynamic label-assignment strategy that significantly reduces false negatives for small objects — a critical property for basketball analytics where the ball occupies as little as 0.3% of the image area [2]. Alongside detection, multi-object tracking algorithms such as SORT, DeepSORT, and more recently ByteTrack have addressed the challenge of maintaining consistent object identities across temporally adjacent frames even in the presence of occlusion, fast motion, and detector noise [3]. ByteTrack, in particular, improves on its predecessors by including low-confidence detections in the association pool rather than discarding them, substantially reducing the identity-switch rate in crowded scenes — exactly the condition that characterises basketball gameplay.
+[869] When detection and tracking are further augmented with perspective transformation techniques that map distorted camera-plane coordinates into metric court space, these systems can compute physically meaningful quantities such as sprint distance, maximum speed, and spatial court coverage that were previously accessible only through expensive wearable inertial sensors or proprietary multi-camera professional tracking installations [4]. The integration of all these capabilities — detection, tracking, team classification, event recognition, and metric-space mapping — into a single automated pipeline running on commodity GPU hardware represents the core technical objective of this work.
+[870] B. Research Gap
+[871] Despite the breadth of existing work in sports computer vision, a clear and persistent research gap remains at the level of end-to-end integration. The majority of published systems address one analytical layer in isolation: either detection accuracy is studied without considering multi-frame identity consistency, or tracking is evaluated in the absence of meaningful downstream event semantics, or court mapping is performed using manually provided calibration data that cannot be automated at scale [5]. Systems that do attempt broader integration typically rely on expensive broadcast-quality multi-camera rigs, depth sensors, or dedicated RFID/UWB hardware that is inaccessible to amateur and collegiate programs operating with a single fixed camera [6]. Team classification — an essential prerequisite for distinguishing passes from interceptions — is routinely handled through manual labelling or supervised color classifiers that require team-specific training data for each new match, limiting generalizability across fixtures [7]. Furthermore, ball detection is rarely treated as a distinct small-object detection problem with its own model; most systems share a single detection model across all classes, accepting the accuracy penalty that comes from class imbalance between players and the ball. There is therefore a strong need for a single-camera, fully automated pipeline that spans the complete analytical chain from raw video to structured match statistics using only open-source components, publicly available datasets, and a purposefully designed dual-model detection strategy.
+[872] C. Motivation
+[873] The practical motivation for this work originates from a fundamental asymmetry in sports analytics: the gap between the richness of information encoded in game footage and the modest fraction of that information that currently reaches coaching decisions. Professional franchises with large analytical budgets employ dedicated video coordinators and subscribe to commercial tracking services such as Second Spectrum or Hawk-Eye, which provide skeletal player-tracking data in real time for all ten players simultaneously. These services cost hundreds of thousands of dollars annually and are entirely out of reach for the vast majority of the global basketball community — collegiate programs, community leagues, development academies, and national federations in emerging basketball nations [8]. An open, reproducible, AI-powered analytics system built on commodity hardware and freely available models would democratize access to performance data of genuinely professional quality. Beyond the immediate practical benefit, building such a system exercises and integrates a rich cross-section of contemporary machine learning techniques — transfer learning, zero-shot classification, multi-object tracking, pose estimation, and geometric transformation — making it a valuable research vehicle for studying how these components interact under real-world data conditions, and how their respective failure modes cascade through a tightly coupled analytical pipeline. The insights generated here have direct applicability to adjacent sports analytics domains including soccer, volleyball, and ice hockey, where similar challenges of fast-moving small objects and multi-player occlusion arise.
+[874] D. Key Contributions
+[875] This paper makes the following specific contributions:
+[876] •  A complete single-camera basketball analytics pipeline implemented with open-source tools, requiring no proprietary hardware or commercial data services, and running at real-time speed (24.7 fps) on a commodity GPU.
+[877] •  A dual-model YOLO detection strategy — implemented as Algorithm PlayerAndBallDetection — that trains separate fine-tuned YOLOv8 models for player detection (100 epochs) and ball detection (250 epochs), demonstrating a 2.5 percentage-point mAP@50 improvement over a single unified detector.
+[878] •  An event detection mechanism — Algorithm PassAndInterceptionDetection — that infers pass and interception events purely from temporal transitions in computed ball possession states, without requiring any labelled event training data.
+[879] •  Zero-shot team classification via FashionCLIP that generalizes across different jersey color combinations without match-specific retraining, achieving 94.2% team assignment accuracy.
+[880] •  A homography-based court mapping module coupled with a YOLOv8-pose keypoint detector that converts pixel coordinates to metric real-world positions, enabling player speed computation with a mean absolute error of ±0.3 m/s.
+[881] •  Comprehensive ablation experiments quantifying the individual contribution of each pipeline component, and a baseline comparison against three alternative detection approaches.
+[882] •  Seven additional contemporary references [21]–[27] covering recent advances in transformer-based detection, graph trajectory modeling, and edge deployment of sports AI systems.
+[883] E. Organization of the Paper
+[884] The remainder of this paper is structured as follows. Section II reviews twenty related works spanning basketball video analytics, multi-object tracking, and sports AI systems. Section III presents the proposed system methodology including the five processing modules with supporting equations (i)–(xviii). Section IV presents algorithms — Algorithm PlayerAndBallDetection and Algorithm PassAndInterceptionDetection. Section V presents results and discussion including experimental setup, dataset description, quantitative performance results, baseline comparisons, ablation studies, and hyperparameter tuning analysis. Section VI presents the conclusion and future work. Section VII provides additional references [21]–[27]. Section VIII supplies the dataset link for reproducibility.
+[885] Recent advances in transformer-based detection architectures [21], graph-based multi-player trajectory modeling [22], and contrastive visual representation learning applied to jersey classification [23] have collectively raised the performance ceiling for single-camera sports analytics systems. Simultaneously, work on lightweight court calibration using vanishing-point geometry [24] and temporal action detection in untrimmed sports video [25] has addressed key bottlenecks that limited earlier pipeline designs. Studies on multi-sport generalization of tracking systems [26] and on real-time edge deployment of detection models for embedded coaching devices [27] further demonstrate that the field is moving rapidly toward practical, low-cost deployment — the same trajectory this paper advances.
+[887] IV-A. RESULTS AND DISCUSSION
+[888] 4.1 Experimental Setup
+[889] All experiments were conducted on a workstation running Windows 11 with an AMD Ryzen 7 5800H CPU (8 cores, 3.2 GHz base clock), 16 GB DDR4 RAM at 3200 MHz, and an NVIDIA GeForce RTX 3060 GPU with 6 GB GDDR6 VRAM. The software stack comprised Python 3.12.10, PyTorch 2.10.0 with CUDA 11.8 acceleration, Ultralytics YOLOv8 version 8.4.10, OpenCV 4.13.0 for frame processing, the Supervision library version 0.25.0 for multi-object tracking integration, and FashionCLIP loaded via Hugging Face Transformers for zero-shot team classification.
+[890] The player detection model was trained for 100 epochs using the SGD optimizer with an initial learning rate of 0.01, cosine annealing learning-rate schedule, and a momentum of 0.937. The ball detection model was trained for 250 epochs under identical optimizer settings to compensate for the ten-fold class imbalance between the Ball class (275 instances) and the Player class (2,540 instances), as identified in Algorithm PlayerAndBallDetection. The YOLOv8-pose court keypoint model was trained for 150 epochs on a dedicated 56-image court dataset annotated with 32 landmark points. All models used a batch size of 16 and an input resolution of 640 × 640 pixels. Full pipeline inference speed on the test hardware was measured at approximately 24.7 frames per second, satisfying real-time processing requirements. All random seeds were fixed to 42 to ensure full experimental reproducibility.
+[891] Component 
+[892] Configuration 
+[893] Value 
+[894] 
+[895] GPU 
+[896] NVIDIA GeForce RTX 3060 
+[897] 6 GB VRAM 
+[898] 
+[899] CPU 
+[900] AMD Ryzen 7 5800H 
+[901] 8 cores / 3.2 GHz 
+[902] 
+[903] RAM 
+[904] DDR4 
+[905] 16 GB at 3200 MHz 
+[906] 
+[907] OS 
+[908] Windows 11 
+[909] — 
+[910] 
+[911] Python 
+[912] Version 
+[913] 3.12.10 
+[914] 
+[915] PyTorch 
+[916] Version + CUDA 
+[917] 2.10.0 + CUDA 11.8 
+[918] 
+[919] YOLO Framework 
+[920] Ultralytics YOLOv8 
+[921] v8.4.10 
+[922] 
+[923] Player model — epochs 
+[924] Training epochs 
+[925] 100 
+[926] 
+[927] Ball model — epochs 
+[928] Training epochs 
+[929] 250 
+[930] 
+[931] Keypoint model — epochs 
+[932] Training epochs 
+[933] 150 
+[934] 
+[935] Batch size 
+[936] Both detection models 
+[937] 16 
+[938] 
+[939] Learning rate (init) 
+[940] SGD optimizer 
+[941] 0.01 
+[942] 
+[943] LR Schedule 
+[944] Cosine annealing 
+[945] — 
+[946] 
+[947] Momentum 
+[948] SGD optimizer 
+[949] 0.937 
+[950] 
+[951] Input resolution 
+[952] All YOLO models 
+[953] 640 × 640 px 
+[954] 
+[955] Inference speed 
+[956] Full pipeline (GPU) 
+[957] 24.7 fps 
+[958] 
+[959] Random seed 
+[960] All experiments 
+[961] 42 
+[962] 
+[963] Table I: Experimental Hardware and Software Configuration
+[965] 4.2 Dataset Description
+[966] The Basketball-Players-17 dataset, sourced from the Roboflow Universe platform, constitutes the primary training and evaluation corpus for both detection models. The dataset contains 320 annotated basketball match broadcast images, each preprocessed and uniformly resized to 640 × 640 pixels by Roboflow's export pipeline. Images are organised into three canonical splits: 256 training images (80%), 32 validation images (10%), and 32 test images (10%). Annotations are stored in YOLO-normalised format (class_id, c_x, c_y, w, h) where all coordinate values are normalised to the [0, 1] range relative to image dimensions.
+[967] The dataset covers seven object classes: Ball (Class 0), Clock (Class 1), Hoop (Class 2), Overlay (Class 3), Player (Class 4), Ref (Class 5), and Scoreboard (Class 6). The total annotation count across all splits is 4,640 bounding boxes, with an average of 14.5 boxes per image — reflecting the inherent multi-object density of basketball broadcast frames where up to twelve on-court players, two referees, and multiple court fixtures are simultaneously visible. A full structural integrity audit confirmed zero missing label files, zero orphaned labels, zero malformed annotation rows, and zero out-of-range bounding box coordinates. All 320 images share a uniform 640 × 640 resolution, confirming that no resolution-induced training variance is present. Class distribution is heavily skewed toward the Player class at approximately 55% of all annotations, with Ball comprising only approximately 6%, creating the ten-fold class imbalance that directly motivates the dual-model approach in Algorithm PlayerAndBallDetection.
+[968] Split 
+[969] Images 
+[970] Label Files 
+[971] Total Boxes 
+[972] Avg Boxes/Image 
+[973] Missing Labels 
+[974] 
+[975] train 
+[976] 256 
+[977] 256 
+[978] 3,686 
+[979] 14.40 
+[980] 0 

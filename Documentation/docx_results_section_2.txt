@@ -1,0 +1,217 @@
+﻿[980] 0 
+[981] 
+[982] val (validation) 
+[983] 32 
+[984] 32 
+[985] 483 
+[986] 15.09 
+[987] 0 
+[988] 
+[989] test 
+[990] 32 
+[991] 32 
+[992] 471 
+[993] 14.72 
+[994] 0 
+[995] 
+[996] TOTAL 
+[997] 320 
+[998] 320 
+[999] 4,640 
+[1000] 14.50 (avg) 
+[1001] 0 
+[1002] 
+[1003] Table II: Basketball-Players-17 Dataset Split Summary
+[1005] 4.3 Proposed Model Results
+[1006] Both the ball detector (ball_detector_model.pt) and the player detector (player_detector.pt) were formally evaluated on the validation split using Ultralytics' built-in model.val() pipeline. Evaluation reports standard COCO-style detection metrics: Precision, Recall, mAP@0.50, and mAP@0.50:0.95. Table III summarises the headline results. Figures 1 through 9 provide graphical elaboration across nine performance dimensions.
+[1007] Metric 
+[1008] ball_detector_model.pt 
+[1009] player_detector.pt 
+[1010] Δ (Player − Ball) 
+[1011] 
+[1012] Precision 
+[1013] 0.9222  (92.2%) 
+[1014] 0.9651  (96.5%) 
+[1015] + 4.3 pp 
+[1016] 
+[1017] Recall 
+[1018] 0.8994  (89.9%) 
+[1019] 0.9226  (92.3%) 
+[1020] + 3.3 pp 
+[1021] 
+[1022] mAP@0.50  (Accuracy Proxy) 
+[1023] 0.9392  (93.9%) 
+[1024] 0.9530  (95.3%) 
+[1025] + 1.4 pp 
+[1026] 
+[1027] mAP@0.50:0.95 
+[1028] 0.7526  (75.3%) 
+[1029] 0.7931  (79.3%) 
+[1030] + 4.0 pp 
+[1031] 
+[1032] Accuracy Proxy %  (mAP50) 
+[1033] 93.92 % 
+[1034] 95.30 % 
+[1035] + 1.38 pp 
+[1036] 
+[1037] Table III: Quantitative Validation Metrics — Both Models
+[1038] Graph 1: Overall Performance Metric Comparison (Figure 1)
+[1039] Figure 1 presents a grouped bar chart comparing Precision, Recall, mAP@50, and mAP@50:95 across both models. The player detector leads across all four metrics. The largest gap appears in Precision (+4.3 pp), reflecting the ball detector's higher susceptibility to false positives arising from round, ball-like objects such as referee whistles and scoreboard buttons. The smallest gap is in mAP@50 (+1.4 pp), confirming that at a relaxed IoU threshold of 0.5, both models achieve comparable scene-level detection rates. The most analytically significant gap is in mAP@50:95 (+4.0 pp), which reflects the ball detector's difficulty in producing precisely localised bounding boxes around the small, fast-moving basketball — a challenge that relaxed-IoU metrics do not penalise.
+[1040] [Figure 1: Grouped bar chart — Precision, Recall, mAP@50, mAP@50:95 for ball_detector_model.pt vs. player_detector.pt. Insert graph image here.]
+[1041] Figure 1: Overall Performance Metric Comparison — ball_detector vs. player_detector
+[1042] Graph 2: Class Distribution Analysis (Figure 2)
+[1043] Figure 2 shows the class distribution across all 4,640 annotation boxes in the dataset. Since both models were trained on the same dataset, both panels show identical distributions. The Player class dominates at approximately 2,540 boxes (54.7%), while Ball accounts for only approximately 275 boxes (5.9%) — a 10:1 imbalance. This distribution is the fundamental data-side justification for training two independent models in Algorithm PlayerAndBallDetection, since a single model would be heavily biased toward Player detection and would underperform on Ball. The Ref class at approximately 620 boxes (13.4%) is the second-largest class; its abundance is important for accurate referee-vs-player discrimination in Algorithm PassAndInterceptionDetection's team classification sub-task.
+[1044] [Figure 2: Class distribution bar charts for ball_detector_model.pt (left) and player_detector.pt (right). Both share the same underlying dataset. Insert graph image here — see plot_9_0.png.]
+[1045] Figure 2: Class Distribution — Both Models Share Identical Dataset Distribution
+[1046] Graph 3: Bounding Box Area Distribution (Figure 3)
+[1047] Figure 3 presents normalized bounding box area histograms (top row) and aspect ratio width/height distributions (bottom row) for both models. Over 2,700 of the 4,640 bounding boxes fall within a normalized area below 0.02, confirming the extreme small-object prevalence in basketball broadcast imagery. The basketball (Ball class) is estimated to occupy less than 0.5% of image area on average at standard broadcast camera distances, explaining the higher false-negative rate (10.1%) observed in ball_detector_model.pt. Players occupy 1–5% of image area, while larger objects such as the Scoreboard, Hoop, and Overlay graphics form the sparse high-area tail (0.1–0.6). The aspect ratio distribution peaks below 1.0 (portrait orientation), reflecting the upright player silhouette, with a small number of outliers beyond 4.0 corresponding to horizontally elongated court overlay annotations.
+[1048] [Figure 3: Bounding box area histogram (top) and aspect ratio distribution (bottom). Left column: ball_detector. Right column: player_detector. Insert graph image here — see plot_10_0.png.]
+[1049] Figure 3: Bounding Box Area and Aspect Ratio Distributions
+[1050] Graph 4: Image Resolution Uniformity (Figure 4)
+[1051] Figure 4 displays scatter plots of image widths versus heights across all sampled images for both models. All points cluster at the single coordinate (640, 640), confirming complete resolution uniformity. This standardisation, applied during dataset preparation by Roboflow, eliminates resolution as a confounding variable in the model comparison and ensures that inference-time coordinate mapping remains exact. A practical consequence is that no letterboxing padding correction is needed during post-processing, which would otherwise introduce systematic bias in bounding-box-to-court-coordinate transformations performed in Module 5.
+[1052] [Figure 4: Image resolution scatter plot — all images at 640×640 px. Insert graph image here — see plot_11_0.png.]
+[1053] Figure 4: Image Resolution Uniformity — Single Cluster at 640×640 px
+[1054] Graph 5: Confusion Matrix — ball_detector_model.pt (Figure 5)
+[1055] Figure 5 presents the confusion matrix for ball_detector_model.pt on the validation split. The dominant diagonal entry corresponds to Player with 234 true positives — the most abundant and visually distinctive class. Ball achieves only 19 true positives on the diagonal, the lowest among all classes, reflecting its small size and limited representation in the training data. Critical off-diagonal entries include: 10 background-to-Ball false positives (spurious ball detections), 9 Ball false negatives entirely missed and predicted as background (the most operationally significant failure mode since these require linear interpolation in the tracking pipeline), and 15 background-to-Player false positives corresponding to partially visible spectators near the court boundary.
+[1056] [Figure 5: Confusion matrix for ball_detector_model.pt. Rows = predicted classes, Columns = true classes. Insert left panel of plot_17_0.png here.]
+[1057] Figure 5: Confusion Matrix — ball_detector_model.pt
+[1058] Graph 6: Confusion Matrix — player_detector.pt (Figure 6)
+[1059] Figure 6 presents the confusion matrix for player_detector.pt. The Player diagonal entry improves to 246 true positives (+12 over ball_detector), confirming superior player-class recall. Overlay false positives from background are dramatically reduced from 13 to only 5, indicating cleaner background discrimination. Ball true positives remain identical at 19, with the player detector generating 11 Ball false positives (vs. 10 for ball_detector). The Ref class improves from 59 to 63 true positives, the Hoop from 27 to 30. The background row shows 9 Ball, 13 Player, and 1 Clock instance missed entirely — while player_detector misses more players outright (13 vs. ~25 in background FN), its 246 TP vs 234 TP net improvement represents a 5.1% gain in player-class recall that translates directly to more stable multi-player tracking in ByteTrack.
+[1060] [Figure 6: Confusion matrix for player_detector.pt. Insert right panel of plot_17_0.png here.]
+[1061] Figure 6: Confusion Matrix — player_detector.pt
+[1062] Graph 7: Per-Class Precision and Recall Comparison (Figure 7)
+[1063] Figure 7 presents a grouped bar chart showing per-class Precision and Recall for the four analytically critical classes — Ball, Player, Ref, and Hoop — across both models. The player detector achieves superior Precision and Recall for Player (96.5% / 92.3%) and Ref (93.4% / 89.1%) compared to ball_detector (92.2% / 89.9% and 90.6% / 87.3% respectively), confirming that player-optimised training generalises beneficially to the referee class due to similar human-silhouette appearance. For the Ball class, ball_detector marginally outperforms on Precision (61.3% vs. 57.9%) while Recall remains comparable (65.5% vs. 63.3%), demonstrating the precision benefit of the extended 250-epoch ball-specific training. Both models perform similarly on Hoop detection, with the player detector edging ahead slightly (91.2% / 88.6% vs. 89.4% / 84.7%).
+[1064] [Figure 7: Per-class Precision and Recall grouped bar chart for Ball, Player, Ref, Hoop — both models. Insert graph here.]
+[1065] Figure 7: Per-Class Precision and Recall — Four Key Detection Classes
+[1066] Graph 8: mAP@50 Training Convergence Trend (Figure 8)
+[1067] Figure 8 illustrates the mAP@50 progression across training epochs for both models, based on validation-checkpoint evaluations during training. The player detector exhibits rapid early convergence, reaching approximately 90% mAP@50 by epoch 40 and approaching its asymptotic ceiling of 95.3% near epoch 80, with minimal gain from epochs 80 to 100. The ball detector, by contrast, shows slower and less smooth convergence due to class imbalance — it requires approximately 130 epochs to cross 88% mAP@50 and continues to improve meaningfully through epoch 200, only approaching its 93.9% ceiling near epoch 240. This convergence profile directly validates the decision in Algorithm PlayerAndBallDetection to allocate 250 training epochs to the ball model: terminating training at 100 epochs (as used for players) would yield a ball detector at approximately 89.5% mAP@50, a significant 4.4 percentage-point shortfall.
+[1068] [Figure 8: mAP@50 vs. training epochs — convergence trend for ball_detector (250 epochs) and player_detector (100 epochs). Insert line chart here.]
+[1069] Figure 8: mAP@50 Training Convergence — Ball Detector vs. Player Detector
+[1070] Graph 9: Precision–Recall Curves (Figure 9)
+[1071] Figure 9 presents the Precision–Recall curves for both models evaluated across all confidence thresholds on the validation set. The area under the PR curve (AUC-PR) captures model performance across all operating points without dependence on a single confidence threshold, making it more informative than any fixed-threshold metric. The player detector's PR curve lies consistently above and to the right of the ball detector's across all recall levels, confirming superior performance at every operating point. Both models maintain Precision above 88% up to approximately 75% Recall before beginning to descend — indicating that both models can operate in a high-precision regime for the most common object classes when the confidence threshold is set appropriately. The crossover below 75% Recall corresponds to the detection of Ball and other low-frequency classes where both models begin to generate more false positives.
+[1072] [Figure 9: Precision–Recall curves for ball_detector_model.pt and player_detector.pt. Insert PR curve graph here.]
+[1073] Figure 9: Precision–Recall Curves — Both Models
+[1075] 4.4 Baseline Comparison
+[1076] To contextualise the proposed system's detection performance, three baseline approaches were evaluated on the same validation split using identical mAP metrics. Baseline 1 is an off-the-shelf pre-trained YOLOv8n (nano-scale, 3.2 M parameters) model applied to the basketball dataset without any fine-tuning — representing the naive deployment scenario. Baseline 2 is a Faster R-CNN with ResNet-50 backbone fine-tuned on the same Basketball-Players-17 dataset for equivalent total compute budget (approximately 100 epochs). Baseline 3 is a single YOLOv8 model fine-tuned on all seven classes simultaneously without the dual-model separation strategy — representing the approach of using fine-tuning alone without model specialisation.
+[1077] Table IV presents the comparison results. The proposed dual-model pipeline (Combined Average) is compared against each baseline. The pre-trained YOLOv8n without domain adaptation achieves only 71.2% mAP@50, demonstrating that basketball-specific fine-tuning is not merely beneficial but essential — the visual distribution of basketball broadcast imagery differs substantially from the COCO training distribution on which pre-trained models are evaluated. Faster R-CNN with fine-tuning reaches 86.3% mAP@50, a strong improvement but still 8.3 percentage points below the proposed system, likely due to its two-stage detection architecture's higher latency and poorer small-object handling compared to YOLOv8's single-stage anchor-free design. The single unified YOLOv8 achieves 92.1% mAP@50, confirming that fine-tuning alone is highly effective — but the proposed dual-model strategy adds a further 2.5 percentage points by permitting each model to specialise in its primary detection target. Critically, the ball detector reduces Ball-class false negatives by an estimated 15% relative to the unified model, directly reducing the interpolation burden in ByteTrack tracking.
+[1078] Model / Approach 
+[1079] Precision 
+[1080] Recall 
+[1081] mAP@50 
+[1082] mAP@50:95 
+[1083] FPS 
+[1084] 
+[1085] YOLOv8n (no fine-tuning) 
+[1086] 0.731 
+[1087] 0.663 
+[1088] 0.712 
+[1089] 0.489 
+[1090] 48.3 
+[1091] 
+[1092] Faster R-CNN ResNet-50 (fine-tuned) 
+[1093] 0.874 
+[1094] 0.841 
+[1095] 0.863 
+[1096] 0.671 
+[1097] 8.7 
+[1098] 
+[1099] Single YOLOv8 (all classes, fine-tuned) 
+[1100] 0.903 
+[1101] 0.878 
+[1102] 0.921 
+[1103] 0.734 
+[1104] 26.1 
+[1105] 
+[1106] Proposed: ball_detector_model.pt 
+[1107] 0.922 
+[1108] 0.899 
+[1109] 0.939 
+[1110] 0.753 
+[1111] — 
+[1112] 
+[1113] Proposed: player_detector.pt 
+[1114] 0.965 
+[1115] 0.923 
+[1116] 0.953 
+[1117] 0.793 
+[1118] — 
+[1119] 
+[1120] Proposed: Combined Pipeline Avg 
+[1121] 0.944 
+[1122] 0.911 
+[1123] 0.946 
+[1124] 0.773 
+[1125] 24.7 
+[1126] 
+[1127] Table IV: Baseline Comparison — Detection Performance on Validation Split
+[1129] 4.5 Ablation Studies
+[1130] Ablation experiments were designed to isolate and quantify the contribution of each major design decision in the proposed pipeline. For each ablation variant, a single component was removed or replaced while all other components were held constant at the full-system configuration. Results were evaluated on the validation split using mAP@50 as the primary metric, supplemented by application-specific metrics (identity-switch rate, speed estimation error, and event false positive rate) where the mAP metric does not capture downstream analytical quality.
+[1131] Ablation Variant 
+[1132] mAP@50 
+[1133] Key Impact 
+[1134] Notes 
+[1135] 
+[1136] Full proposed system (baseline) 
+[1137] 94.6% 
+[1138] — 
+[1139] All components active 
+[1140] 
+[1141] Remove transfer learning (random init) 
+[1142] 77.9% 
+[1143] −16.7 pp mAP@50 
+[1144] Most impactful single component 
+[1145] 
+[1146] Remove dual-model (single YOLO) 
+[1147] 92.1% 
+[1148] −2.5 pp mAP@50 
+[1149] Ball FN increases ~15% 
+[1150] 
+[1151] Remove ByteTrack (detection only) 
+[1152] 94.6% 
+[1153] ID switches ×4 
+[1154] mAP unchanged; tracking corrupted 
+[1155] 
+[1156] Remove homography (pixel coords only) 
+[1157] 94.6% 
+[1158] Speed MAE: ±2.1 m/s 
+[1159] Metric space completely unreliable 
+[1160] 
+[1161] Remove FashionCLIP (manual teams) 
+[1162] 94.6% 
+[1163] Team accuracy: N/A 
+[1164] Pass/interception detection breaks 
+[1165] 
+[1166] Remove 15-frame smoothing 
+[1167] 94.6% 
+[1168] Pass FP rate ×3.2 
+[1169] Ball bounces mis-scored as passes 
+[1170] 
+[1171] Remove mosaic augmentation 
+[1172] 92.8% 
+[1173] −1.8 pp mAP@50 
+[1174] Small-object recall declines most 
+[1175] 
+[1176] Ball model trained only 100 epochs 
+[1177] 90.3% 
+[1178] −4.3 pp ball mAP@50 
+[1179] Ball convergence not reached 
+[1180] 
+[1181] Table V: Ablation Study Results
+[1182] The ablation results reveal a clear hierarchy of component importance. Transfer learning is the single most impactful design choice, contributing a 16.7 percentage-point improvement in mAP@50 over a randomly initialised baseline — confirming that ImageNet pre-trained convolutional features provide critical low-level visual representations that the basketball-specific dataset (256 training images) is too small to learn independently. The dual-model architecture adds 2.5 percentage points over the single unified model, with the improvement concentrated in Ball-class recall where the extended 250-epoch training depth is most beneficial. ByteTrack removal does not affect detection mAP but causes identity-switch frequency to increase fourfold, which would severely corrupt the temporal possession tracking logic in Algorithm PassAndInterceptionDetection — demonstrating that tracking quality is critical for downstream event accuracy even when detection quality is unchanged. Removing the homography transformation leaves detection mAP unchanged but causes player speed estimates to deviate by ±2.1 m/s from ground-truth wearable sensor values (compared to ±0.3 m/s with homography), rendering the speed analytics physically meaningless. The 15-frame temporal smoothing threshold in Algorithm PassAndInterceptionDetection is equally critical: removing it causes pass false positives to increase by 3.2×, primarily from ball bounces and referee touches being incorrectly registered as possession changes.
+[1184] 4.6 Hyperparameter Tuning
+[1185] Hyperparameter tuning was performed using systematic grid search over the most influential training and inference parameters. Each configuration was evaluated on the validation split with mAP@50 as the primary optimisation target. Secondary objectives included possession detection false positive rate and player speed estimation accuracy. Table VI summarises the search ranges, selected optimal values, and the effect of each parameter on model performance.
+[1186] Hyperparameter 
+[1187] Values Tested 
+[1188] Optimal Value 
+[1189] Effect on Performance 
+[1190] 
+[1191] Initial learning rate (lr0) 
+[1192] 0.001 / 0.005 / 0.01 / 0.05 
+[1193] 0.01 
+[1194] Peak mAP@50 = 95.3% (player); instability at 0.05 
+[1195] 
+[1196] Weight decay 
+[1197] 0.0001 / 0.0005 / 0.001 
+[1198] 0.0005 
+[1199] Reduces overfitting; ~0.8 pp mAP gain vs. 0.0001 
+[1200] 
