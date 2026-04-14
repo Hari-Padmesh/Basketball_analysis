@@ -1,0 +1,16 @@
+# Core deep learning and computer vision
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+supervision>=0.18.0
+
+# Computer vision utilities
+opencv-python>=4.8.0
+Pillow>=9.5.0
+
+# HuggingFace ecosystem (for Fashion-CLIP team assignment)
+transformers>=4.30.0
+
+# Data processing
+numpy>=1.24.0
+pandas>=2.0.0
