@@ -102,9 +102,9 @@ Input Video
 
 4. **Court Keypoint Detection** – A YOLOv8 Pose model detects 18 pre-defined court landmark points (corners, free-throw lines, mid-court, etc.) per frame, also in batches of 20.
 
-5. **Keypoint Validation** – Proportional-distance checks filter out hallucinated keypoints (80 % error margin).
+5. **Keypoint Validation** – Proportional-distance checks filter out hallucinated keypoints (80% error margin).
 
-6. **Team Assignment** – For every player bounding box, a cropped player image is passed to [Fashion-CLIP](https://huggingface.co/patrickjohncyh/fashion-clip) (`patrickjohncyh/fashion-clip`). The model scores the image against text prompts such as `"white shirt"` and `"dark red shirt"` to determine team membership. The assignment is refreshed every 50 frames.
+6. **Team Assignment** – For each frame, every visible player's bounding box is cropped and passed to [Fashion-CLIP](https://huggingface.co/patrickjohncyh/fashion-clip) (`patrickjohncyh/fashion-clip`). The model scores the image against text prompts such as `"white shirt"` and `"dark red shirt"` to determine team membership. To avoid accumulating stale IDs over long sequences, the player-to-team mapping cache is reset every 50 frames while still classifying every player in every frame.
 
 7. **Ball Possession / Acquisition Detection** – For each frame the system finds which player is closest to the ball (or whose bounding box contains the most of the ball). A player must hold possession for at least 10 consecutive frames before it is confirmed.
 
@@ -380,8 +380,26 @@ Refer to `Documentation/Ablation_Studies_Hyperparameter_Tuning.md` for hyperpara
 The system uses **18 court keypoints** mapped to real-world NBA/FIBA dimensions (28 m × 15 m):
 
 ```
-Left edge (6 pts) → Mid-court (2 pts) → Left free-throw line (2 pts)
-Right edge (6 pts) → Right free-throw line (2 pts)
+Index  Location
+─────  ────────────────────────────────────────────────────
+ 0     Left baseline – top corner
+ 1     Left baseline – 0.91 m from top
+ 2     Left baseline – top of left paint (5.18 m from top)
+ 3     Left baseline – bottom of left paint (10 m from top)
+ 4     Left baseline – 14.1 m from top
+ 5     Left baseline – bottom corner
+ 6     Mid-court line – bottom
+ 7     Mid-court line – top
+ 8     Left free-throw line – top (5.18 m from top)
+ 9     Left free-throw line – bottom (10 m from top)
+10     Right baseline – bottom corner
+11     Right baseline – 14.1 m from top
+12     Right baseline – bottom of right paint (10 m from top)
+13     Right baseline – top of right paint (5.18 m from top)
+14     Right baseline – 0.91 m from top
+15     Right baseline – top corner
+16     Right free-throw line – top (5.18 m from top)
+17     Right free-throw line – bottom (10 m from top)
 ```
 
 ---
